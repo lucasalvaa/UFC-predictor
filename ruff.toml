@@ -21,7 +21,8 @@ ignore = [
     "ANN101", # Non serve annotare 'self'
     "ANN102", # Non serve annotare 'cls'
     "N812",
-    "B008"
+    "B008",
+    "D205"
 ]
 
 [lint.mccabe]

@@ -13,7 +13,6 @@ def recalculate_records(df: pd.DataFrame) -> pd.DataFrame:
     :param df: The dataframe.
     :return: The updated dataframe.
     """
-
     name_cols: List[str] = ["f1_name", "f2_name", "winner"]
     for col in name_cols:
         df[col] = df[col].astype(str).str.strip()
@@ -78,7 +77,6 @@ def process_result_feature(df: pd.DataFrame) -> pd.DataFrame:
     :param df: The dataframe.
     :return: The updated dataframe.
     """
-
     df = df[df["result"] != "Could Not Continue"]
 
     cleanup_map: Dict[str, str] = {
@@ -99,7 +97,6 @@ def recalculate_ko_and_submissions(df: pd.DataFrame) -> pd.DataFrame:
     :return: The updated dataframe. Eight features will be added:
         f1_ko_w, f1_ko_l, f2_ko_w, f2_ko_l, f1_sub_w, f1_sub_l, f2_sub_w, f2_sub_l.
     """
-
     df = df.copy()
 
     df["event_date"] = pd.to_datetime(df["event_date"])
@@ -162,7 +159,6 @@ def process_weight_class_feature(df: pd.DataFrame) -> pd.DataFrame:
     :param df: The dataframe.
     :return: The updated dataframe.
     """
-
     cleanup_map: Dict[str, str] = {
         "UFC Light Heavyweight Title": "Light Heavyweight",
         "UFC Bantamweight Title": "Bantamweight",
@@ -186,7 +182,6 @@ def extract_age(df: pd.DataFrame) -> int:
     :param df: The dataframe.
     :return: The number of records removed.
     """
-
     df = df.copy()
 
     event_datetime = pd.to_datetime(df["event_date"])
@@ -211,7 +206,6 @@ def calculate_delta(
     :param drop: Whether to delete the original features. Defaults to True.
     :return: The updated dataframe with the delta_{target} feature.
     """
-
     df = df.copy()
     cols = [f"f1_{feature}", f"f2_{feature}"]
     df.loc[:, f"delta_{target}"] = df[cols[0]] - df[cols[1]]
@@ -229,7 +223,6 @@ def symmetrize_dataset(df: pd.DataFrame, seed: int = 42) -> pd.DataFrame:
     :param seed: Random seed. Defaults to 42.
     :return: The symmetrized dataframe.
     """
-
     np.random.seed(seed)
     df_swapped = df.copy()
 
