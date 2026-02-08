@@ -1,4 +1,5 @@
 import argparse
+import json
 from pathlib import Path
 from typing import List, Tuple
 
@@ -220,5 +221,14 @@ if __name__ == "__main__":
     # Step 3: Ensemble
     ensemble = build_ensemble(models_best_params, X_train, y_train, X_test, y_test)
 
-    # Saving the ensemble
-    joblib.dump(ensemble, "ensemble.pkl")
+    # Saving ensemble and scaler
+    out_dir = Path("outs")
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    joblib.dump(ensemble, out_dir / "model.joblib")
+    joblib.dump(scaler, out_dir / "scaler.joblib")
+
+    # Saving the exact order of the columns used in the train
+    model_columns = list(X_train.columns)
+    with open(out_dir / "model_columns.json", "w") as f:
+        json.dump(model_columns, f)
