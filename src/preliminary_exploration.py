@@ -41,7 +41,7 @@ def drop_features_by_keywords(
 if __name__ == "__main__":
     df_raw = pd.read_csv("data/raw.csv")
     print(f"Dataset shape: {df_raw.shape}")
-    print(f"Memory Usage: {df_raw.memory_usage(deep=True).sum() / 1024 ** 2:.2f} MB")
+    print(f"Memory Usage: {df_raw.memory_usage(deep=True).sum() / 1024**2:.2f} MB")
 
     print("\nInformations about columns:")
     print(df_raw.info())
@@ -64,18 +64,20 @@ if __name__ == "__main__":
 
     print(df_raw["num_rounds"].value_counts())
 
-    topuria_mask = (df_raw["f_1_name"] == "Ilia Topuria") | (df_raw["f_2_name"] == "Ilia Topuria")
+    topuria_mask = (df_raw["f_1_name"] == "Ilia Topuria") | (
+        df_raw["f_2_name"] == "Ilia Topuria"
+    )
 
     cols_to_show = [
-      "f_1_name",
-      "f_1_fighter_w",
-      "f_1_fighter_l",
-      "f_1_fighter_d",
-      "f_2_name",
-      "f_2_fighter_w",
-      "f_2_fighter_l",
-      "f_2_fighter_d",
-      "event_date",
+        "f_1_name",
+        "f_1_fighter_w",
+        "f_1_fighter_l",
+        "f_1_fighter_d",
+        "f_2_name",
+        "f_2_fighter_w",
+        "f_2_fighter_l",
+        "f_2_fighter_d",
+        "event_date",
     ]
 
     topuria = df_raw[topuria_mask][cols_to_show].copy()

@@ -1,25 +1,7 @@
 from typing import Dict, List
 
+import numpy as np
 import pandas as pd
-
-def extract_age(df: pd.DataFrame) -> int:
-    """Add *f1_age* and *f2_age* features to the dataframe,
-    removing the records where the fighter's date of birth is null.
-
-    :param df: The dataframe.
-    :return: The number of records removed.
-    """
-    event_datetime = pd.to_datetime(df["event_date"])
-
-    f1_dob_datetime = pd.to_datetime(df["f1_fighter_dob"])
-    f2_dob_datetime = pd.to_datetime(df["f2_fighter_dob"])
-
-    df["f1_age"] = (event_datetime - f1_dob_datetime).dt.days / 365.25
-    df["f2_age"] = (event_datetime - f2_dob_datetime).dt.days / 365.25
-
-    len_before = len(df)
-    df.dropna(subset=["f1_age", "f2_age"], inplace=True)
-    return len_before - len(df)
 
 
 def recalculate_records(df: pd.DataFrame) -> pd.DataFrame:
@@ -31,6 +13,7 @@ def recalculate_records(df: pd.DataFrame) -> pd.DataFrame:
     :param df: The dataframe.
     :return: The updated dataframe.
     """
+
     name_cols: List[str] = ["f1_name", "f2_name", "winner"]
     for col in name_cols:
         df[col] = df[col].astype(str).str.strip()
@@ -88,7 +71,14 @@ def recalculate_records(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def clean_results(df: pd.DataFrame) -> pd.DataFrame:
+def process_result_feature(df: pd.DataFrame) -> pd.DataFrame:
+    """Clean up the "results" feature values
+    by mapping the values to a restricted domain.
+
+    :param df: The dataframe.
+    :return: The updated dataframe.
+    """
+
     df = df[df["result"] != "Could Not Continue"]
 
     cleanup_map: Dict[str, str] = {
@@ -109,6 +99,7 @@ def recalculate_ko_and_submissions(df: pd.DataFrame) -> pd.DataFrame:
     :return: The updated dataframe. Eight features will be added:
         f1_ko_w, f1_ko_l, f2_ko_w, f2_ko_l, f1_sub_w, f1_sub_l, f2_sub_w, f2_sub_l.
     """
+
     df = df.copy()
 
     df["event_date"] = pd.to_datetime(df["event_date"])
@@ -162,3 +153,95 @@ def recalculate_ko_and_submissions(df: pd.DataFrame) -> pd.DataFrame:
     df = df.merge(f2_stats, left_on="match_id", right_index=True, how="left")
 
     return df.drop(columns="match_id")
+
+
+def process_weight_class_feature(df: pd.DataFrame) -> pd.DataFrame:
+    """Clean up the "weight_class" feature values
+    by mapping the values to a restricted domain.
+
+    :param df: The dataframe.
+    :return: The updated dataframe.
+    """
+
+    cleanup_map: Dict[str, str] = {
+        "UFC Light Heavyweight Title": "Light Heavyweight",
+        "UFC Bantamweight Title": "Bantamweight",
+        "UFC Middleweight Title": "Middleweight",
+        "UFC 4 Tournament Title": "Open Weight",
+        "UFC 2 Tournament Title": "Open Weight",
+        "Nieznana": "Open Weight",
+    }
+
+    df["weight_class"] = df["weight_class"].replace(cleanup_map)
+
+    df = df[df["weight_class"] != "Open Weight"]
+    # df = df[df["weight_class"] != "Catch Weight"]
+    return df
+
+
+def extract_age(df: pd.DataFrame) -> int:
+    """Add *f1_age* and *f2_age* features to the dataframe,
+    removing the records where the fighter's date of birth is null.
+
+    :param df: The dataframe.
+    :return: The number of records removed.
+    """
+
+    df = df.copy()
+
+    event_datetime = pd.to_datetime(df["event_date"])
+
+    f1_dob_datetime = pd.to_datetime(df["f1_fighter_dob"])
+    f2_dob_datetime = pd.to_datetime(df["f2_fighter_dob"])
+
+    df["f1_age"] = (event_datetime - f1_dob_datetime).dt.days / 365.25
+    df["f2_age"] = (event_datetime - f2_dob_datetime).dt.days / 365.25
+
+    return df
+
+
+def calculate_delta(
+    target: str, feature: str, df: pd.DataFrame, drop: bool = True
+) -> pd.DataFrame:
+    """Calculate the difference between the "feature" features of the two fighters.
+
+    :param target: Target feature subfix (e.g. height, age)
+    :param feature: Subfix of the feature to calculate delta for.
+    :param df: The dataframe.
+    :param drop: Whether to delete the original features. Defaults to True.
+    :return: The updated dataframe with the delta_{target} feature.
+    """
+
+    df = df.copy()
+    cols = [f"f1_{feature}", f"f2_{feature}"]
+    df.loc[:, f"delta_{target}"] = df[cols[0]] - df[cols[1]]
+
+    if drop:
+        df = df.drop(columns=cols, errors="ignore")
+
+    return df
+
+
+def symmetrize_dataset(df: pd.DataFrame, seed: int = 42) -> pd.DataFrame:
+    """Balance the dataset by swapping fighter 1 with fighter 2 in some rows.
+
+    :param df: The unbalanced dataframe.
+    :param seed: Random seed. Defaults to 42.
+    :return: The symmetrized dataframe.
+    """
+
+    np.random.seed(seed)
+    df_swapped = df.copy()
+
+    # Select 50% of the records randomly and swaps the fighters
+    mask = np.random.rand(len(df_swapped)) < 0.5
+
+    # Invert delta values of the selected records
+    delta_cols: List[str] = [c for c in df.columns if c.startswith("delta_")]
+    for col in delta_cols:
+        df_swapped.loc[mask, col] = -df_swapped.loc[mask, col]
+
+    # Update target variable
+    df_swapped.loc[mask, "f1_win"] = 1 - df_swapped.loc[mask, "f1_win"]
+
+    return df_swapped

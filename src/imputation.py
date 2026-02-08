@@ -17,7 +17,6 @@ def missing_values_info(df: pd.DataFrame) -> None:
             }
         )
         print(missing_df.sort_values("Missing Count", ascending=False))
-        print(f"Dataset shape: {df.shape}")
     else:
         print("No missing values found!")
 
