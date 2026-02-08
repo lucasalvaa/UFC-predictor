@@ -1,60 +1,74 @@
-from typing import List
-
 import pandas as pd
+from pathlib import Path
 
-
-def drop_50_perc_null_features(df: pd.DataFrame, perc: float = 0.5) -> int:
-    """Drop features with more than 50% null values.
-
-    :param df: The dataframe from which to drop features.
-    :param perc: The minimum percentage of null values for the feature.
-    :return: Number of features dropped.
-    """
-    len_before = df.columns.size
-    threshold = len(df) * perc
-    df.dropna(thresh=threshold, axis=1, inplace=True)
-    return len_before - df.columns.size
-
-
-def drop_features_by_keywords(
-    df: pd.DataFrame, keywords: List[str], show: bool = False
-) -> int:
-    """Drop features that contain certain keywords in their name.
-
-    :param df: The dataframe from which to drop features.
-    :param keywords: The list of keywords to search for in feature names.
-    :param show: True if you want to show the dropped features names.
-    :return: Number of features dropped.
-    """
-    cols_to_drop = [
-        col for col in df.columns if any(key in col.lower() for key in keywords)
-    ]
-
-    if show:
-        print("Columns removed:")
-        print(cols_to_drop)
-
-    df.drop(columns=cols_to_drop, inplace=True)
-    return len(cols_to_drop)
-
+from feature_eng import *
+from imputation import *
 
 if __name__ == "__main__":
-    df = pd.read_csv("data/raw.csv")
-    print(f"Dataset shape: {df.shape}")
-    print(f"Columns: {list(df.columns)}")
+    raw_df = pd.read_csv("data/raw.csv")
 
-    print("\nDropping columns that would cause look-ahead bias...")
-    removed = drop_features_by_keywords(
-        df, keywords=["r1", "r2", "r3", "r4", "r5"], show=False
-    )
-    print(f"{removed} rounds-related features removed!")
-    removed = drop_features_by_keywords(df, keywords=["odds"], show=False)
-    print(f"{removed} odds-related features removed!")
+    match_related_features = [
+        "winner",
+        "weight_class",
+        "result",
+        "gender",
+        "event_date",
+    ]
 
-    print("\nDropping columns with more than 50% null values...")
-    removed = drop_50_perc_null_features(df)
-    print(f"{removed} columns removed!")
-    print(f"Dataset shape: {df.shape}")
+    fighters_related_features = [
+        "name",
+        "fighter_height_cm",
+        "fighter_weight_lbs",
+        "fighter_reach_cm",
+        "fighter_stance",
+        "fighter_dob",
+    ]
 
-    print(f"Dataset shape: {df.shape}")
-    print(f"\nColumns: {list(df.columns)}")
+    df = raw_df[match_related_features].copy()
+
+    for i in range(1, 3):
+        for f in fighters_related_features:
+            df[f"f{i}_{f}"] = raw_df[f"f_{i}_{f}"]
+
+    # Remove UFC Women's matches and drop "gender" feature
+    df = df[df["gender"] == "M"]
+    df.drop(columns=["gender"], inplace=True)
+
+    # Recalculate the W-L-D records obtained by the fighters up to the match date.
+    df = recalculate_records(df)
+
+    # Target variable extraction
+    df["f1_win"] = (df["winner"] == df["f1_name"]).astype(int)
+
+    # Clean "result" feature by mapping their values
+    print("Fight endings before cleaning:")
+    print(df["result"].value_counts())
+    df = clean_results(df)
+    print("\nFight endings after cleaning:")
+    print(df["result"].value_counts())
+
+    # Recalculate the number of wins and losses by KO or submission
+    # for each fighter up to the date of the match.
+    df = recalculate_ko_and_submissions(df)
+
+    # Drop records where one or both fighters do not have a date of birth
+    len_before = len(df)
+    df = df.dropna(subset=["f1_fighter_dob", "f2_fighter_dob"])
+    print(f"{len_before - len(df)} records without a date of birth have been dropped.")
+    missing_values_info(df)
+
+    # Impute null values for height, reach and stance columns
+    df = impute_physical_data(df)
+    df = impute_fighters_stance(df)
+    missing_values_info(df)
+
+    print("\nExtracting fighters' ages up to the date of each match...")
+    removed = extract_age(df)
+
+    print("\n Weight classes:")
+    print(df["weight_class"].value_counts(dropna=False))
+
+    print(f"\nSaving. Dataset shape: {df.shape}")
+    filepath = Path("data/processed/extracted.csv")
+    filepath.parent.mkdir(parents=True, exist_ok=True)
+    df.to_csv(filepath, encoding="utf-8", index=False, header=True)
