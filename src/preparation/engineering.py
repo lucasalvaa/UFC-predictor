@@ -199,13 +199,7 @@ if __name__ == "__main__":
 
     correlation_matrix(df, n=10, show=True)
 
-    print("\nSaving both datasets...")
-
-    filepath = Path("data/processed.csv")
-    filepath.parent.mkdir(parents=True, exist_ok=True)
-    df.to_csv(filepath, encoding="utf-8", index=False, header=True)
-    print(f"Non-balanced dataset successfully saved at {filepath}!")
-
+    print("\nSaving dataset...")
     filepath = Path("data/balanced.csv")
     filepath.parent.mkdir(parents=True, exist_ok=True)
     df_swapped.to_csv(filepath, encoding="utf-8", index=False, header=True)

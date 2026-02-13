@@ -1,5 +1,5 @@
 import pandas as pd
-from src.imputation import missing_values_info
+from src.preparation.imputation import missing_values_info
 
 if __name__ == "__main__":
     df_raw = pd.read_csv("data/raw.csv")
