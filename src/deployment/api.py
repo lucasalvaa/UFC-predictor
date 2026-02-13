@@ -8,7 +8,7 @@ import uvicorn
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
-from src.deployment.scraper import search_fighter_stats
+from scraper import search_fighter_stats
 
 app = FastAPI(title="UFC Predictor API")
 
