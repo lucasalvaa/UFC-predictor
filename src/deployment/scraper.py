@@ -129,14 +129,11 @@ def search_fighter_stats(fighter_name: str) -> Dict[str, str | float | int] | No
         "reach_cm", "age", "stance", "wins", "losses", "draws",
         "wins_ko", "losses_ko", "wins_sub", "losses_sub".
     """
-    print(f"Searching URL on ufcstats.com for: {fighter_name}...")
     url = get_fighter_url(fighter_name)
 
     if not url:
         print(f"No URL found for {fighter_name}")
         return None
-
-    print(f"URL found: {url}")
 
     # HTTP request to the fighter's page on ufcstats.com
     resp = requests.get(url)
@@ -174,11 +171,11 @@ def search_fighter_stats(fighter_name: str) -> Dict[str, str | float | int] | No
 
             try:
                 if w_clean and w_clean != "--":
-                    stats['weight_lbs'] = float(w_clean)
+                    stats["weight_lbs"] = float(w_clean)
                 else:
-                    stats['weight_lbs'] = np.nan
+                    stats["weight_lbs"] = np.nan
             except ValueError:
-                stats['weight_lbs'] = np.nan
+                stats["weight_lbs"] = np.nan
 
         elif "STANCE:" in text:
             stats["stance"] = text.replace("STANCE:", "").strip()
