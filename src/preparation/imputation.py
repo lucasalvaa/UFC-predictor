@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pandas as pd
 
 
@@ -78,3 +80,28 @@ def impute_fighters_stance(df: pd.DataFrame) -> pd.DataFrame:
     df["f2_fighter_stance"] = df["f2_fighter_stance"].fillna(mode)
 
     return df
+
+
+if __name__ == "__main__":
+    df = pd.read_csv("data/cleaned.csv")
+
+    missing_values_info(df)
+
+    # Drop records where one or both fighters do not have a date of birth
+    len_before = len(df)
+    df = df.dropna(subset=["f1_fighter_dob", "f2_fighter_dob"])
+    print(
+        f"\n{len_before - len(df)} records without a date of birth have been dropped."
+    )
+
+    missing_values_info(df)
+
+    # Impute null values for height, reach and stance columns
+    df = impute_physical_data(df)
+    df = impute_fighters_stance(df)
+    missing_values_info(df)
+
+    filepath = Path("data/nonull.csv")
+    filepath.parent.mkdir(parents=True, exist_ok=True)
+    df.to_csv(filepath, encoding="utf-8", index=False, header=True)
+    print(f"\nDataset successfully saved at {filepath}!")
