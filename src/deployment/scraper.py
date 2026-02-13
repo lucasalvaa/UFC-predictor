@@ -120,7 +120,7 @@ def calculate_age(dob_string: str) -> float | None:
         return None
 
 
-def search_fighter_stats(fighter_name: str) -> Dict[str, str | float | int] | None:
+def search_fighter_stats(fighter_name: str) -> Dict[str, str | float | int] | None: # noqa: C901
     """Search fighter stats on ufcstats.com given his name.
 
     :param fighter_name: The full name of the fighter.
