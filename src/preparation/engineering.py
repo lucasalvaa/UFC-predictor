@@ -6,8 +6,11 @@ import pandas as pd
 
 
 def encode_weight_classes(df: pd.DataFrame) -> pd.DataFrame:
-    """Accorpa le classi minoritarie e trasforma le weight class in ID numerici.
-    Elimina la necessità della colonna gender codificandola nella classe.
+    """Map the *weight_class* feature's values to a range of values from 0 to 7,
+    from the lightest to the heaviest weight class.
+
+    :param df: The dataframe.
+    :return: The updated dataframe.
     """
     ordered_classes = [
         "Flyweight",
@@ -18,24 +21,11 @@ def encode_weight_classes(df: pd.DataFrame) -> pd.DataFrame:
         "Middleweight",
         "Light Heavyweight",
         "Heavyweight",
-        "Catch Weight",
     ]
 
     encoding_map = {name: i for i, name in enumerate(ordered_classes)}
 
-    # Trasformazione in numeri
     df["weight_class_id"] = df["weight_class"].map(encoding_map)
-
-    return df
-
-
-def encode_ending_methods(df: pd.DataFrame) -> pd.DataFrame:
-    """ """
-
-    methods = ["Decision", "Submission", "KO/TKO"]
-
-    encoding_map = {name: i for i, name in enumerate(methods)}
-    df["method_id"] = df["result"].map(encoding_map)
 
     return df
 
