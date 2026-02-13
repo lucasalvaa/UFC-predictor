@@ -1,8 +1,10 @@
 from pathlib import Path
 from typing import List
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import seaborn as sns
 
 
 def encode_weight_classes(df: pd.DataFrame) -> pd.DataFrame:
@@ -58,6 +60,45 @@ def balance_dataset(df: pd.DataFrame, seed: int = 42) -> pd.DataFrame:
     df_swapped.loc[mask, "f1_win"] = 1 - df_swapped.loc[mask, "f1_win"]
 
     return df_swapped
+
+
+def correlation_matrix(
+    df: pd.DataFrame, n: int = 10, save: bool = True, show: bool = True
+) -> None:
+    """Compute the confusion matrix and show the ranking
+    of the n feature pairs with the highest correlation.
+
+    :param df: The dataframe.
+    :param n: The number of feature pairs to show.
+    :param save: Whether to save the confusion matrix in .png format.
+    :param show: Whether to show the confusion matrix.
+    """
+    corr_matrix = df.corr().abs()
+
+    # Extract the lower triangle excluding the diagonal
+    lower = corr_matrix.where(np.tril(np.ones(corr_matrix.shape), k=-1).astype(bool))
+
+    cmh = sns.heatmap(lower, annot=False, cmap="coolwarm")
+    if show:
+        plt.show()
+
+    if save:
+        filepath = Path("outs/corr_matrix.png")
+        filepath.parent.mkdir(parents=True, exist_ok=True)
+        figure = cmh.get_figure()
+        figure.savefig(filepath, dpi=400)
+
+    # Transform the matrix into a series
+    corr_series = lower.unstack().dropna()
+
+    # Sort the values in descending order
+    sorted_correlations = corr_series.sort_values(ascending=False)
+
+    # Print the ranking of the feature pairs with the highest correlation
+    print(f"Top {n} feature pairs by absolute correlation:")
+    print("-" * 50)
+    for (f1, f2), val in sorted_correlations.head(n).items():
+        print(f"{val:.4f} | {f1} <-> {f2}")
 
 
 if __name__ == "__main__":
@@ -155,6 +196,8 @@ if __name__ == "__main__":
     df_swapped = balance_dataset(df)
     print("\nTarget variable's distribution after balancing:")
     print(df_swapped["f1_win"].value_counts())
+
+    correlation_matrix(df, n=10, show=True)
 
     print("\nSaving both datasets...")
 
