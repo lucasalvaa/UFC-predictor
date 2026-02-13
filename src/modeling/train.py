@@ -86,8 +86,8 @@ def run_training(
         },
     }
 
-    # models.pop("xgb")
-    # models.pop("svc")
+    models.pop("xgb")
+    models.pop("svc")
 
     tuned_models = []
 
@@ -168,7 +168,7 @@ def build_ensemble(
 
 
 if __name__ == "__main__":
-    df = pd.read_csv("data/processed.csv")
+    df = pd.read_csv("data/balanced.csv")
     TARGET = "f1_win"
 
     # Splitting data using time series split
