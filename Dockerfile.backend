@@ -1,0 +1,36 @@
+FROM python:3.12-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+RUN groupadd -r appgroup && useradd -r -g appgroup -m appuser
+
+WORKDIR /app
+
+RUN pip install --no-cache-dir \
+    fastapi \
+    uvicorn \
+    pandas \
+    numpy \
+    scikit-learn \
+    lightgbm \
+    joblib \
+    requests \
+    beautifulsoup4 \
+    pydantic
+
+COPY outs/model.joblib \
+    outs/scaler.joblib \
+    outs/model_columns.json \
+    src/deployment/api.py \
+    src/deployment/scraper.py ./
+
+RUN chown -R appuser:appgroup /app
+USER appuser
+
+EXPOSE 8000
+
+CMD ["python", "api.py"]
+
+
+
