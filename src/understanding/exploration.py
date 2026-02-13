@@ -1,5 +1,4 @@
 import pandas as pd
-
 from src.imputation import missing_values_info
 
 if __name__ == "__main__":
