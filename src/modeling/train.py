@@ -1,4 +1,3 @@
-import argparse
 import json
 from pathlib import Path
 from typing import List, Tuple
@@ -87,8 +86,8 @@ def run_training(
         },
     }
 
-    models.pop("xgb")
-    models.pop("svc")
+    # models.pop("xgb")
+    # models.pop("svc")
 
     tuned_models = []
 
@@ -169,35 +168,17 @@ def build_ensemble(
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--balanced", type=bool, required=True)
-    args = parser.parse_args()
-
-    df = pd.read_csv("data/balanced.csv" if args.balanced else "data/processed.csv")
-
+    df = pd.read_csv("data/processed.csv")
     TARGET = "f1_win"
-    features_to_ignore = [
-        # "same_stance",
-        # "weight_class_id",
-        # "date",
-        # "f1_ko_w", "f2_ko_w",
-        # "f1_ko_l", "f2_ko_l",
-        # "f1_sub_w", "f2_sub_w",
-        # "f1_sub_l", "f2_sub_l",
-    ]
 
-    if args.balanced:
-        print("Training on balanced dataset...")
-    else:
-        print("Training on unbalanced dataset...")
-
-    # Data are split in train and test set
-    X = df.drop(columns=[c for c in [*features_to_ignore, TARGET] if c in df.columns])
+    # Splitting data using time series split
+    X = df.drop(columns=TARGET)
     y = df[TARGET]
 
     tscv = TimeSeriesSplit(n_splits=3)
     fold_results = []
 
+    print("Training on unbalanced dataset...")
     for i, (train_index, test_index) in enumerate(tscv.split(X)):
         X_train_raw, X_test_raw = X.iloc[train_index], X.iloc[test_index]
         y_train, y_test = y.iloc[train_index], y.iloc[test_index]
