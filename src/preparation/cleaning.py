@@ -1,6 +1,6 @@
+from pathlib import Path
 from typing import Dict, List
 
-import numpy as np
 import pandas as pd
 
 
@@ -70,7 +70,7 @@ def recalculate_records(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def process_result_feature(df: pd.DataFrame) -> pd.DataFrame:
+def clean_result_feature(df: pd.DataFrame) -> pd.DataFrame:
     """Clean up the "results" feature values
     by mapping the values to a restricted domain.
 
@@ -78,6 +78,7 @@ def process_result_feature(df: pd.DataFrame) -> pd.DataFrame:
     :return: The updated dataframe.
     """
     df = df[df["result"] != "Could Not Continue"]
+    df = df[df["result"] != "DQ"]
 
     cleanup_map: Dict[str, str] = {
         "TKO - Doctor's Stoppage": "KO/TKO",
@@ -163,78 +164,76 @@ def process_weight_class_feature(df: pd.DataFrame) -> pd.DataFrame:
         "UFC Light Heavyweight Title": "Light Heavyweight",
         "UFC Bantamweight Title": "Bantamweight",
         "UFC Middleweight Title": "Middleweight",
-        "UFC 4 Tournament Title": "Open Weight",
-        "UFC 2 Tournament Title": "Open Weight",
         "Nieznana": "Open Weight",
     }
 
     df["weight_class"] = df["weight_class"].replace(cleanup_map)
 
     df = df[df["weight_class"] != "Open Weight"]
-    # df = df[df["weight_class"] != "Catch Weight"]
+    df = df[df["weight_class"] != "Catch Weight"]
     return df
 
 
-def extract_age(df: pd.DataFrame) -> int:
-    """Add *f1_age* and *f2_age* features to the dataframe,
-    removing the records where the fighter's date of birth is null.
+if __name__ == "__main__":
+    raw_df = pd.read_csv("data/raw.csv")
 
-    :param df: The dataframe.
-    :return: The number of records removed.
-    """
-    df = df.copy()
+    match_related_features = [
+        "winner",
+        "weight_class",
+        "result",
+        "gender",
+        "event_date",
+        "num_rounds",
+    ]
 
-    event_datetime = pd.to_datetime(df["event_date"])
+    fighters_related_features = [
+        "name",
+        "fighter_height_cm",
+        "fighter_weight_lbs",
+        "fighter_reach_cm",
+        "fighter_stance",
+        "fighter_dob",
+    ]
 
-    f1_dob_datetime = pd.to_datetime(df["f1_fighter_dob"])
-    f2_dob_datetime = pd.to_datetime(df["f2_fighter_dob"])
+    df = raw_df[match_related_features].copy()
 
-    df["f1_age"] = (event_datetime - f1_dob_datetime).dt.days / 365.25
-    df["f2_age"] = (event_datetime - f2_dob_datetime).dt.days / 365.25
+    for i in range(1, 3):
+        for f in fighters_related_features:
+            df[f"f{i}_{f}"] = raw_df[f"f_{i}_{f}"]
 
-    return df
+    # Remove UFC Women's matches and drop "gender" feature
+    df = df[df["gender"] == "M"]
+    df.drop(columns=["gender"], inplace=True)
 
+    # Recalculate fighters' records (W-L-D) up to the match date.
+    df = recalculate_records(df)
 
-def calculate_delta(
-    target: str, feature: str, df: pd.DataFrame, drop: bool = True
-) -> pd.DataFrame:
-    """Calculate the difference between the "feature" features of the two fighters.
+    # Clean "result" feature by mapping their values
+    print("Fight ending methods before cleaning:")
+    print(df["result"].value_counts())
+    df = clean_result_feature(df)
+    # df = df[df["result"] != "DQ"]
+    print("\nFight ending methods after cleaning:")
+    print(df["result"].value_counts())
 
-    :param target: Target feature subfix (e.g. height, age)
-    :param feature: Subfix of the feature to calculate delta for.
-    :param df: The dataframe.
-    :param drop: Whether to delete the original features. Defaults to True.
-    :return: The updated dataframe with the delta_{target} feature.
-    """
-    df = df.copy()
-    cols = [f"f1_{feature}", f"f2_{feature}"]
-    df.loc[:, f"delta_{target}"] = df[cols[0]] - df[cols[1]]
+    # Recalculate the number of wins and losses by KO or submission
+    # for each fighter up to the date of the match.
+    df = recalculate_ko_and_submissions(df)
 
-    if drop:
-        df = df.drop(columns=cols, errors="ignore")
+    # Remove bouts with less than three rounds
+    df = df[df["num_rounds"] >= 3]
 
-    return df
+    # Clean "weight_class" feature by mapping their values
+    print("\nWeight classes:")
+    print(df["weight_class"].value_counts())
+    df = process_weight_class_feature(df)
+    print("\nWeight classes after processing:")
+    print(df["weight_class"].value_counts())
 
+    print(f"\nDataset shape after cleaning: {df.shape}")
 
-def symmetrize_dataset(df: pd.DataFrame, seed: int = 42) -> pd.DataFrame:
-    """Balance the dataset by swapping fighter 1 with fighter 2 in some rows.
-
-    :param df: The unbalanced dataframe.
-    :param seed: Random seed. Defaults to 42.
-    :return: The symmetrized dataframe.
-    """
-    np.random.seed(seed)
-    df_swapped = df.copy()
-
-    # Select 50% of the records randomly and swaps the fighters
-    mask = np.random.rand(len(df_swapped)) < 0.5
-
-    # Invert delta values of the selected records
-    delta_cols: List[str] = [c for c in df.columns if c.startswith("delta_")]
-    for col in delta_cols:
-        df_swapped.loc[mask, col] = -df_swapped.loc[mask, col]
-
-    # Update target variable
-    df_swapped.loc[mask, "f1_win"] = 1 - df_swapped.loc[mask, "f1_win"]
-
-    return df_swapped
+    print("\nSaving dataset...")
+    filepath = Path("data/cleaned.csv")
+    filepath.parent.mkdir(parents=True, exist_ok=True)
+    df.to_csv(filepath, encoding="utf-8", index=False, header=True)
+    print(f"Cleaned dataset successfully saved at {filepath}!")
