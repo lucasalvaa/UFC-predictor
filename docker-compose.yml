@@ -1,0 +1,22 @@
+services:
+  backend:
+    image: lucasalvaa:ufc-predictor-backend
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: api-container
+    ports:
+      - "8000:8000"
+
+  frontend:
+    image: lucasalvaa:ufc-predictor-frontend
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: ui-container
+    ports:
+      - "8501:8501"
+    environment:
+      - API_URL=http://api-container:8000
+    depends_on:
+      - backend
