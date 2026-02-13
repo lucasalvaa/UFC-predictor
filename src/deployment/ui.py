@@ -1,5 +1,8 @@
+import os
 import requests
 import streamlit as st
+
+API_URL = os.getenv("API_URL", "http://127.0.0.1:8000")
 
 st.set_page_config(
     page_title="UFC Predictor AI", page_icon=":boxing_glove:", layout="centered"
@@ -92,7 +95,7 @@ if st.button("PREDICT"):
             try:
                 # Payload aggiornato con il campo 'rounds'
                 response = requests.post(
-                    "http://127.0.0.1:8000/predict",
+                    f"{API_URL}/predict",
                     json={
                         "f1_name": f1_name,
                         "f2_name": f2_name,
