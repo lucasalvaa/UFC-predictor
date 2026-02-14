@@ -1,6 +1,6 @@
 services:
   backend:
-    image: lucasalvaa:ufc-predictor-backend
+    image: lucasalvaa/ufc-predictor-backend
     build:
       context: .
       dockerfile: Dockerfile.backend
@@ -9,7 +9,7 @@ services:
       - "8000:8000"
 
   frontend:
-    image: lucasalvaa:ufc-predictor-frontend
+    image: lucasalvaa/ufc-predictor-frontend
     build:
       context: .
       dockerfile: Dockerfile.frontend
